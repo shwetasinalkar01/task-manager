@@ -13,10 +13,19 @@
     </div>
 
     <div class="nav-links">
+
         <a href="/dashboard">Dashboard</a>
-        <a href="/projects">Projects</a>
+
+        {% if session.role == 'Admin' %}
+
+            <a href="/projects">Projects</a>
+
+        {% endif %}
+
         <a href="/tasks">Tasks</a>
+
         <a href="/logout">Logout</a>
+
     </div>
 
 </div>
@@ -25,12 +34,14 @@
 
     <div class="card">
 
-        <h2>Welcome, {{ session.name }}</h2>
+        <h2>
+            Welcome {{ session.name }}
+        </h2>
 
         <br>
 
         <p>
-            Role :
+            Logged in as:
             <b>{{ session.role }}</b>
         </p>
 

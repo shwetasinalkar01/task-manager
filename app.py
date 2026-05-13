@@ -1,14 +1,16 @@
 from flask import Flask, render_template, request, redirect, session
 from flask_mysqldb import MySQL
+import os
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
-# MYSQL CONFIG
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'shweta@1201'
-app.config['MYSQL_DB'] = 'team_manager'
+# MYSQL CONFIG FOR RAILWAY
+app.config['MYSQL_HOST'] = os.getenv('MYSQLHOST')
+app.config['MYSQL_USER'] = os.getenv('MYSQLUSER')
+app.config['MYSQL_PASSWORD'] = os.getenv('MYSQLPASSWORD')
+app.config['MYSQL_DB'] = os.getenv('MYSQLDATABASE')
+app.config['MYSQL_PORT'] = int(os.getenv('MYSQLPORT', 3306))
 
 mysql = MySQL(app)
 
@@ -27,9 +29,6 @@ def signup():
         username = request.form['username']
         email = request.form['email']
         phone = request.form['phone']
-        gender = request.form['gender']
-        department = request.form['department']
-        address = request.form['address']
         password = request.form['password']
         role = request.form['role']
 
@@ -37,15 +36,9 @@ def signup():
 
         cur.execute("""
             INSERT INTO users
-            (full_name, username, email, phone, gender,
-            department, address, password, role)
-
-            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            full_name, username, email, phone,
-            gender, department, address,
-            password, role
-        ))
+            (full_name, username, email, phone, password, role)
+            VALUES(%s,%s,%s,%s,%s,%s)
+        """, (full_name, username, email, phone, password, role))
 
         mysql.connection.commit()
         cur.close()
@@ -75,9 +68,11 @@ def login():
         cur.close()
 
         if user:
+
             session['user_id'] = user[0]
             session['name'] = user[1]
-            session['role'] = user[9]
+            session['username'] = user[2]
+            session['role'] = user[6]
 
             return redirect('/dashboard')
 
@@ -122,31 +117,20 @@ def projects():
         project_name = request.form['project_name']
         description = request.form['description']
         deadline = request.form['deadline']
-        status = request.form['status']
 
         cur.execute("""
-            INSERT INTO projects
-            (project_name,description,deadline,status)
-
-            VALUES(%s,%s,%s,%s)
-        """, (
-            project_name,
-            description,
-            deadline,
-            status
-        ))
+            INSERT INTO projects(project_name,description,deadline)
+            VALUES(%s,%s,%s)
+        """, (project_name, description, deadline))
 
         mysql.connection.commit()
 
     cur.execute("SELECT * FROM projects")
-    projects = cur.fetchall()
+    data = cur.fetchall()
 
     cur.close()
 
-    return render_template(
-        'projects.html',
-        projects=projects
-    )
+    return render_template('projects.html', projects=data)
 
 # TASKS
 @app.route('/tasks', methods=['GET', 'POST'])
@@ -160,25 +144,13 @@ def tasks():
         assigned_to = request.form['assigned_to']
         project_id = request.form['project_id']
         priority = request.form['priority']
-        start_date = request.form['start_date']
-        end_date = request.form['end_date']
         status = request.form['status']
 
         cur.execute("""
             INSERT INTO tasks
-            (task_name,assigned_to,project_id,
-            priority,start_date,end_date,status)
-
-            VALUES(%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            task_name,
-            assigned_to,
-            project_id,
-            priority,
-            start_date,
-            end_date,
-            status
-        ))
+            (task_name,assigned_to,project_id,priority,status)
+            VALUES(%s,%s,%s,%s,%s)
+        """, (task_name, assigned_to, project_id, priority, status))
 
         mysql.connection.commit()
 
@@ -188,17 +160,10 @@ def tasks():
                users.full_name,
                projects.project_name,
                tasks.priority,
-               tasks.start_date,
-               tasks.end_date,
                tasks.status
-
         FROM tasks
-
-        JOIN users
-        ON tasks.assigned_to = users.id
-
-        JOIN projects
-        ON tasks.project_id = projects.id
+        JOIN users ON tasks.assigned_to = users.id
+        JOIN projects ON tasks.project_id = projects.id
     """)
 
     tasks = cur.fetchall()
@@ -224,5 +189,6 @@ def logout():
     session.clear()
     return redirect('/login')
 
+# RUN APP
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

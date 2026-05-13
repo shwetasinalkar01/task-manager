@@ -8,58 +8,88 @@
 
 <div class="navbar">
 
-    <div class="logo">Task Assignment</div>
+    <div class="logo">
+        Task Management
+    </div>
 
     <div class="nav-links">
+
         <a href="/dashboard">Dashboard</a>
-        <a href="/projects">Projects</a>
+
+        {% if session.role == 'Admin' %}
+            <a href="/projects">Projects</a>
+        {% endif %}
+
         <a href="/logout">Logout</a>
+
     </div>
 
 </div>
 
 <div class="container">
 
+    <!-- ADMIN ONLY FORM -->
+
+    {% if session.role == 'Admin' %}
+
     <div class="card">
 
-        <h2 class="form-title">Assign New Task</h2>
+        <h2 class="form-title">
+            Assign New Task
+        </h2>
 
         <form method="POST">
 
             <div class="form-group">
+
                 <label>Task Name</label>
-                <input type="text" name="task_name" required>
+
+                <input
+                    type="text"
+                    name="task_name"
+                    required
+                >
+
             </div>
 
             <div class="form-group">
+
                 <label>Assign User</label>
 
                 <select name="assigned_to">
 
                     {% for u in users %}
+
                     <option value="{{ u[0] }}">
                         {{ u[1] }}
                     </option>
+
                     {% endfor %}
 
                 </select>
+
             </div>
 
             <div class="form-group">
+
                 <label>Project</label>
 
                 <select name="project_id">
 
                     {% for p in projects %}
+
                     <option value="{{ p[0] }}">
                         {{ p[1] }}
                     </option>
+
                     {% endfor %}
 
                 </select>
+
             </div>
 
             <div class="form-group">
+
                 <label>Priority</label>
 
                 <select name="priority">
@@ -67,25 +97,40 @@
                     <option>Medium</option>
                     <option>High</option>
                 </select>
+
             </div>
 
             <div class="form-group">
+
                 <label>Start Date</label>
-                <input type="date" name="start_date">
+
+                <input
+                    type="date"
+                    name="start_date"
+                >
+
             </div>
 
             <div class="form-group">
+
                 <label>End Date</label>
-                <input type="date" name="end_date">
+
+                <input
+                    type="date"
+                    name="end_date"
+                >
+
             </div>
 
             <div class="form-group">
+
                 <label>Status</label>
 
                 <select name="status">
                     <option>Pending</option>
                     <option>Completed</option>
                 </select>
+
             </div>
 
             <button type="submit">
@@ -96,17 +141,23 @@
 
     </div>
 
+    {% endif %}
+
+    <!-- TASK TABLE -->
+
     <table>
 
         <tr>
+
             <th>ID</th>
             <th>Task</th>
             <th>User</th>
             <th>Project</th>
             <th>Priority</th>
-            <th>Start</th>
-            <th>End</th>
+            <th>Start Date</th>
+            <th>End Date</th>
             <th>Status</th>
+
         </tr>
 
         {% for t in tasks %}
@@ -119,19 +170,33 @@
             <td>{{ t[3] }}</td>
 
             <td>
+
                 {% if t[4] == 'High' %}
-                    <span class="badge high">High</span>
+
+                    <span class="badge high">
+                        High
+                    </span>
 
                 {% elif t[4] == 'Medium' %}
-                    <span class="badge medium">Medium</span>
+
+                    <span class="badge medium">
+                        Medium
+                    </span>
 
                 {% else %}
-                    <span class="badge low">Low</span>
+
+                    <span class="badge low">
+                        Low
+                    </span>
+
                 {% endif %}
+
             </td>
 
             <td>{{ t[5] }}</td>
+
             <td>{{ t[6] }}</td>
+
             <td>{{ t[7] }}</td>
 
         </tr>
