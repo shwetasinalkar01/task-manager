@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Projects</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="navbar">
+
+    <div class="logo">Project Management</div>
+
+    <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/tasks">Tasks</a>
+        <a href="/logout">Logout</a>
+    </div>
+
+</div>
+
+<div class="container">
+
+    <div class="card">
+
+        <h2 class="form-title">Create New Project</h2>
+
+        <form method="POST">
+
+            <div class="form-group">
+                <label>Project Name</label>
+                <input type="text" name="project_name" required>
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Deadline</label>
+                <input type="date" name="deadline" required>
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+
+                <select name="status">
+                    <option>Active</option>
+                    <option>Completed</option>
+                </select>
+            </div>
+
+            <button type="submit">
+                Create Project
+            </button>
+
+        </form>
+
+    </div>
+
+    <table>
+
+        <tr>
+            <th>ID</th>
+            <th>Project Name</th>
+            <th>Description</th>
+            <th>Deadline</th>
+            <th>Status</th>
+        </tr>
+
+        {% for p in projects %}
+
+        <tr>
+            <td>{{ p[0] }}</td>
+            <td>{{ p[1] }}</td>
+            <td>{{ p[2] }}</td>
+            <td>{{ p[3] }}</td>
+            <td>{{ p[4] }}</td>
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+</div>
+
+</body>
+</html>

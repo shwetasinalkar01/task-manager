@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="navbar">
+
+    <div class="logo">
+        Team Task Manager
+    </div>
+
+    <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/projects">Projects</a>
+        <a href="/tasks">Tasks</a>
+        <a href="/logout">Logout</a>
+    </div>
+
+</div>
+
+<div class="container">
+
+    <div class="card">
+
+        <h2>Welcome, {{ session.name }}</h2>
+
+        <br>
+
+        <p>
+            Role :
+            <b>{{ session.role }}</b>
+        </p>
+
+    </div>
+
+    <div class="dashboard-cards">
+
+        <div class="stat-card">
+            <h1>{{ total_users }}</h1>
+            <p>Total Users</p>
+        </div>
+
+        <div class="stat-card">
+            <h1>{{ total_projects }}</h1>
+            <p>Total Projects</p>
+        </div>
+
+        <div class="stat-card">
+            <h1>{{ total_tasks }}</h1>
+            <p>Total Tasks</p>
+        </div>
+
+        <div class="stat-card">
+            <h1>{{ completed_tasks }}</h1>
+            <p>Completed Tasks</p>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
