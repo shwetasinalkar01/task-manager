@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
-# MYSQL CONFIG FOR RAILWAY
+# MYSQL CONFIG (RAILWAY SAFE)
 app.config['MYSQL_HOST'] = os.getenv('MYSQLHOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQLUSER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQLPASSWORD')
@@ -19,10 +19,10 @@ mysql = MySQL(app)
 def home():
     return redirect('/login')
 
-# SIGNUP
+
+# SIGNUP (FIXED - only fields in DB)
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-
     if request.method == 'POST':
 
         full_name = request.form['full_name']
@@ -35,9 +35,8 @@ def signup():
         cur = mysql.connection.cursor()
 
         cur.execute("""
-            INSERT INTO users
-            (full_name, username, email, phone, password, role)
-            VALUES(%s,%s,%s,%s,%s,%s)
+            INSERT INTO users (full_name, username, email, phone, password, role)
+            VALUES (%s,%s,%s,%s,%s,%s)
         """, (full_name, username, email, phone, password, role))
 
         mysql.connection.commit()
@@ -47,10 +46,10 @@ def signup():
 
     return render_template('signup.html')
 
+
 # LOGIN
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-
     if request.method == 'POST':
 
         username = request.form['username']
@@ -64,11 +63,9 @@ def login():
         """, (username, password))
 
         user = cur.fetchone()
-
         cur.close()
 
         if user:
-
             session['user_id'] = user[0]
             session['name'] = user[1]
             session['username'] = user[2]
@@ -77,6 +74,7 @@ def login():
             return redirect('/dashboard')
 
     return render_template('login.html')
+
 
 # DASHBOARD
 @app.route('/dashboard')
@@ -106,6 +104,7 @@ def dashboard():
         completed_tasks=completed_tasks
     )
 
+
 # PROJECTS
 @app.route('/projects', methods=['GET', 'POST'])
 def projects():
@@ -119,8 +118,8 @@ def projects():
         deadline = request.form['deadline']
 
         cur.execute("""
-            INSERT INTO projects(project_name,description,deadline)
-            VALUES(%s,%s,%s)
+            INSERT INTO projects (project_name, description, deadline)
+            VALUES (%s,%s,%s)
         """, (project_name, description, deadline))
 
         mysql.connection.commit()
@@ -132,7 +131,8 @@ def projects():
 
     return render_template('projects.html', projects=data)
 
-# TASKS
+
+# TASKS (FIXED - matches DB)
 @app.route('/tasks', methods=['GET', 'POST'])
 def tasks():
 
@@ -147,9 +147,8 @@ def tasks():
         status = request.form['status']
 
         cur.execute("""
-            INSERT INTO tasks
-            (task_name,assigned_to,project_id,priority,status)
-            VALUES(%s,%s,%s,%s,%s)
+            INSERT INTO tasks (task_name, assigned_to, project_id, priority, status)
+            VALUES (%s,%s,%s,%s,%s)
         """, (task_name, assigned_to, project_id, priority, status))
 
         mysql.connection.commit()
@@ -183,12 +182,13 @@ def tasks():
         projects=projects
     )
 
+
 # LOGOUT
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/login')
 
-# RUN APP
+
 if __name__ == '__main__':
-    app.run()
+    app.run(host="0.0.0.0", port=5000)
