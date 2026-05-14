@@ -1,50 +1,66 @@
+import pymysql
 import os
-import MySQLdb
 
-db = MySQLdb.connect(
-    host=os.getenv("MYSQLHOST"),
-    user=os.getenv("MYSQLUSER"),
-    passwd=os.getenv("MYSQLPASSWORD"),
-    db=os.getenv("MYSQLDATABASE"),
-    port=int(os.getenv("MYSQLPORT", 3306))
-)
 
-cur = db.cursor()
+def get_db():
+    return pymysql.connect(
+        host=os.getenv("MYSQLHOST"),
+        user=os.getenv("MYSQLUSER"),
+        password=os.getenv("MYSQLPASSWORD"),
+        database=os.getenv("MYSQLDATABASE"),
+        port=int(os.getenv("MYSQLPORT", 3306)),
+        autocommit=True
+    )
 
-cur.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    full_name VARCHAR(100),
-    username VARCHAR(100),
-    email VARCHAR(100),
-    phone VARCHAR(20),
-    password VARCHAR(100),
-    role VARCHAR(20)
-)
-""")
 
-cur.execute("""
-CREATE TABLE IF NOT EXISTS projects (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    project_name VARCHAR(100),
-    description TEXT,
-    deadline DATE
-)
-""")
+def init_db():
+    conn = get_db()
+    cur = conn.cursor()
 
-cur.execute("""
-CREATE TABLE IF NOT EXISTS tasks (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    task_name VARCHAR(100),
-    assigned_to INT,
-    project_id INT,
-    priority VARCHAR(20),
-    status VARCHAR(50)
-)
-""")
+    # USERS
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        full_name VARCHAR(255),
+        username VARCHAR(255),
+        email VARCHAR(255),
+        phone VARCHAR(50),
+        gender VARCHAR(50),
+        department VARCHAR(100),
+        address TEXT,
+        password VARCHAR(255),
+        role VARCHAR(50)
+    )
+    """)
 
-db.commit()
-cur.close()
-db.close()
+    # PROJECTS
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS projects (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        project_name VARCHAR(255),
+        description TEXT,
+        deadline DATE,
+        status VARCHAR(50)
+    )
+    """)
 
-print("Database setup complete")
+    # TASKS
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS tasks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        task_name VARCHAR(255),
+        assigned_to INT,
+        project_id INT,
+        priority VARCHAR(50),
+        status VARCHAR(50),
+        start_date DATE,
+        end_date DATE
+    )
+    """)
+
+    conn.close()
+    print("✅ Database Initialized Successfully")
+
+
+if __name__ == "__main__":
+    init_db()
