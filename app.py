@@ -1,20 +1,20 @@
 from flask import Flask, render_template, request, redirect, session
-from flask_mysqldb import MySQL
 import pymysql
-pymysql.install_as_MySQLdb()
 import os
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
-# MYSQL CONFIG (RAILWAY SAFE)
-app.config['MYSQL_HOST'] = os.getenv('MYSQLHOST')
-app.config['MYSQL_USER'] = os.getenv('MYSQLUSER')
-app.config['MYSQL_PASSWORD'] = os.getenv('MYSQLPASSWORD')
-app.config['MYSQL_DB'] = os.getenv('MYSQLDATABASE')
-app.config['MYSQL_PORT'] = int(os.getenv('MYSQLPORT', 3306))
-
-mysql = MySQL(app)
+# DB CONNECTION FUNCTION (PURE PYMYSQL)
+def get_db():
+    return pymysql.connect(
+        host=os.getenv("MYSQLHOST"),
+        user=os.getenv("MYSQLUSER"),
+        password=os.getenv("MYSQLPASSWORD"),
+        database=os.getenv("MYSQLDATABASE"),
+        port=int(os.getenv("MYSQLPORT", 3306)),
+        cursorclass=pymysql.cursors.Cursor
+    )
 
 # HOME
 @app.route('/')
@@ -25,7 +25,6 @@ def home():
 # SIGNUP
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-
     if request.method == 'POST':
 
         full_name = request.form['full_name']
@@ -35,16 +34,16 @@ def signup():
         password = request.form['password']
         role = request.form['role']
 
-        cur = mysql.connection.cursor()
+        conn = get_db()
+        cur = conn.cursor()
 
         cur.execute("""
-            INSERT INTO users 
-            (full_name, username, email, phone, password, role)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO users (full_name, username, email, phone, password, role)
+            VALUES (%s,%s,%s,%s,%s,%s)
         """, (full_name, username, email, phone, password, role))
 
-        mysql.connection.commit()
-        cur.close()
+        conn.commit()
+        conn.close()
 
         return redirect('/login')
 
@@ -54,13 +53,13 @@ def signup():
 # LOGIN
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-
     if request.method == 'POST':
 
         username = request.form['username']
         password = request.form['password']
 
-        cur = mysql.connection.cursor()
+        conn = get_db()
+        cur = conn.cursor()
 
         cur.execute("""
             SELECT * FROM users
@@ -68,7 +67,7 @@ def login():
         """, (username, password))
 
         user = cur.fetchone()
-        cur.close()
+        conn.close()
 
         if user:
             session['user_id'] = user[0]
@@ -85,7 +84,8 @@ def login():
 @app.route('/dashboard')
 def dashboard():
 
-    cur = mysql.connection.cursor()
+    conn = get_db()
+    cur = conn.cursor()
 
     cur.execute("SELECT COUNT(*) FROM users")
     total_users = cur.fetchone()[0]
@@ -99,7 +99,7 @@ def dashboard():
     cur.execute("SELECT COUNT(*) FROM tasks WHERE status='Completed'")
     completed_tasks = cur.fetchone()[0]
 
-    cur.close()
+    conn.close()
 
     return render_template(
         'dashboard.html',
@@ -114,7 +114,8 @@ def dashboard():
 @app.route('/projects', methods=['GET', 'POST'])
 def projects():
 
-    cur = mysql.connection.cursor()
+    conn = get_db()
+    cur = conn.cursor()
 
     if request.method == 'POST':
 
@@ -123,17 +124,16 @@ def projects():
         deadline = request.form['deadline']
 
         cur.execute("""
-            INSERT INTO projects 
-            (project_name, description, deadline)
-            VALUES (%s, %s, %s)
+            INSERT INTO projects (project_name, description, deadline)
+            VALUES (%s,%s,%s)
         """, (project_name, description, deadline))
 
-        mysql.connection.commit()
+        conn.commit()
 
     cur.execute("SELECT * FROM projects")
     data = cur.fetchall()
 
-    cur.close()
+    conn.close()
 
     return render_template('projects.html', projects=data)
 
@@ -142,7 +142,8 @@ def projects():
 @app.route('/tasks', methods=['GET', 'POST'])
 def tasks():
 
-    cur = mysql.connection.cursor()
+    conn = get_db()
+    cur = conn.cursor()
 
     if request.method == 'POST':
 
@@ -153,21 +154,15 @@ def tasks():
         status = request.form['status']
 
         cur.execute("""
-            INSERT INTO tasks 
-            (task_name, assigned_to, project_id, priority, status)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO tasks (task_name, assigned_to, project_id, priority, status)
+            VALUES (%s,%s,%s,%s,%s)
         """, (task_name, assigned_to, project_id, priority, status))
 
-        mysql.connection.commit()
+        conn.commit()
 
     cur.execute("""
-        SELECT 
-            tasks.id,
-            tasks.task_name,
-            users.full_name,
-            projects.project_name,
-            tasks.priority,
-            tasks.status
+        SELECT tasks.id, tasks.task_name, users.full_name,
+               projects.project_name, tasks.priority, tasks.status
         FROM tasks
         JOIN users ON tasks.assigned_to = users.id
         JOIN projects ON tasks.project_id = projects.id
@@ -181,7 +176,7 @@ def tasks():
     cur.execute("SELECT * FROM projects")
     projects = cur.fetchall()
 
-    cur.close()
+    conn.close()
 
     return render_template(
         'tasks.html',
@@ -198,9 +193,5 @@ def logout():
     return redirect('/login')
 
 
-# RUN APP (LOCAL ONLY)
 if __name__ == '__main__':
-    app.run(
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 5000))
-    )
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
