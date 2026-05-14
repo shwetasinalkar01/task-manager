@@ -7,7 +7,7 @@ app.secret_key = "secretkey"
 
 
 # ----------------------------
-# DATABASE CONNECTION
+# DATABASE CONNECTION (FIXED)
 # ----------------------------
 def get_db():
     return pymysql.connect(
@@ -17,7 +17,9 @@ def get_db():
         database=os.getenv("MYSQLDATABASE"),
         port=int(os.getenv("MYSQLPORT", 3306)),
         cursorclass=pymysql.cursors.Cursor,
-        connect_timeout=5
+        connect_timeout=5,
+        autocommit=True,
+        ssl=None
     )
 
 
@@ -91,7 +93,7 @@ def login():
                 session['user_id'] = user[0]
                 session['name'] = user[1]
                 session['username'] = user[2]
-                session['role'] = user[8]   # role column (IMPORTANT FIX)
+                session['role'] = user[8]   # role column
 
                 return redirect('/dashboard')
             else:
