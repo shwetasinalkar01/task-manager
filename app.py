@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, session
 from flask_mysqldb import MySQL
+import pymysql
+pymysql.install_as_MySQLdb()
 import os
 
 app = Flask(__name__)
@@ -66,7 +68,6 @@ def login():
         """, (username, password))
 
         user = cur.fetchone()
-
         cur.close()
 
         if user:
@@ -197,7 +198,7 @@ def logout():
     return redirect('/login')
 
 
-# RUN APP
+# RUN APP (LOCAL ONLY)
 if __name__ == '__main__':
     app.run(
         host="0.0.0.0",
