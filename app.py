@@ -5,7 +5,9 @@ import os
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
-# DB CONNECTION FUNCTION (PURE PYMYSQL)
+# ----------------------------
+# DATABASE CONNECTION (SAFE)
+# ----------------------------
 def get_db():
     return pymysql.connect(
         host=os.getenv("MYSQLHOST"),
@@ -13,16 +15,22 @@ def get_db():
         password=os.getenv("MYSQLPASSWORD"),
         database=os.getenv("MYSQLDATABASE"),
         port=int(os.getenv("MYSQLPORT", 3306)),
-        cursorclass=pymysql.cursors.Cursor
+        cursorclass=pymysql.cursors.Cursor,
+        connect_timeout=5
     )
 
+
+# ----------------------------
 # HOME
+# ----------------------------
 @app.route('/')
 def home():
     return redirect('/login')
 
 
+# ----------------------------
 # SIGNUP
+# ----------------------------
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -50,7 +58,9 @@ def signup():
     return render_template('signup.html')
 
 
+# ----------------------------
 # LOGIN
+# ----------------------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -80,40 +90,46 @@ def login():
     return render_template('login.html')
 
 
-# DASHBOARD
+# ----------------------------
+# DASHBOARD (SAFE VERSION)
+# ----------------------------
 @app.route('/dashboard')
 def dashboard():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
 
-    conn = get_db()
-    cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM users")
+        total_users = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) FROM users")
-    total_users = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM projects")
+        total_projects = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) FROM projects")
-    total_projects = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM tasks")
+        total_tasks = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) FROM tasks")
-    total_tasks = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM tasks WHERE status='Completed'")
+        completed_tasks = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) FROM tasks WHERE status='Completed'")
-    completed_tasks = cur.fetchone()[0]
+        conn.close()
 
-    conn.close()
+        return render_template(
+            'dashboard.html',
+            total_users=total_users,
+            total_projects=total_projects,
+            total_tasks=total_tasks,
+            completed_tasks=completed_tasks
+        )
 
-    return render_template(
-        'dashboard.html',
-        total_users=total_users,
-        total_projects=total_projects,
-        total_tasks=total_tasks,
-        completed_tasks=completed_tasks
-    )
+    except Exception as e:
+        return f"Dashboard Error: {str(e)}"
 
 
+# ----------------------------
 # PROJECTS
+# ----------------------------
 @app.route('/projects', methods=['GET', 'POST'])
 def projects():
-
     conn = get_db()
     cur = conn.cursor()
 
@@ -138,10 +154,11 @@ def projects():
     return render_template('projects.html', projects=data)
 
 
+# ----------------------------
 # TASKS
+# ----------------------------
 @app.route('/tasks', methods=['GET', 'POST'])
 def tasks():
-
     conn = get_db()
     cur = conn.cursor()
 
@@ -168,7 +185,7 @@ def tasks():
         JOIN projects ON tasks.project_id = projects.id
     """)
 
-    tasks = cur.fetchall()
+    tasks_data = cur.fetchall()
 
     cur.execute("SELECT * FROM users")
     users = cur.fetchall()
@@ -180,18 +197,23 @@ def tasks():
 
     return render_template(
         'tasks.html',
-        tasks=tasks,
+        tasks=tasks_data,
         users=users,
         projects=projects
     )
 
 
+# ----------------------------
 # LOGOUT
+# ----------------------------
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/login')
 
 
+# ----------------------------
+# RUN (RAILWAY SAFE)
+# ----------------------------
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
