@@ -5,6 +5,7 @@ import os
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
+
 # ----------------------------
 # DATABASE CONNECTION (SAFE)
 # ----------------------------
@@ -34,26 +35,29 @@ def home():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
+        try:
+            conn = get_db()
+            cur = conn.cursor()
 
-        full_name = request.form['full_name']
-        username = request.form['username']
-        email = request.form['email']
-        phone = request.form['phone']
-        password = request.form['password']
-        role = request.form['role']
+            cur.execute("""
+                INSERT INTO users (full_name, username, email, phone, password, role)
+                VALUES (%s,%s,%s,%s,%s,%s)
+            """, (
+                request.form['full_name'],
+                request.form['username'],
+                request.form['email'],
+                request.form['phone'],
+                request.form['password'],
+                request.form['role']
+            ))
 
-        conn = get_db()
-        cur = conn.cursor()
+            conn.commit()
+            conn.close()
 
-        cur.execute("""
-            INSERT INTO users (full_name, username, email, phone, password, role)
-            VALUES (%s,%s,%s,%s,%s,%s)
-        """, (full_name, username, email, phone, password, role))
+            return redirect('/login')
 
-        conn.commit()
-        conn.close()
-
-        return redirect('/login')
+        except Exception as e:
+            return f"Signup Error: {str(e)}"
 
     return render_template('signup.html')
 
@@ -64,34 +68,33 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        try:
+            conn = get_db()
+            cur = conn.cursor()
 
-        username = request.form['username']
-        password = request.form['password']
+            cur.execute("""
+                SELECT * FROM users
+                WHERE username=%s AND password=%s
+            """, (request.form['username'], request.form['password']))
 
-        conn = get_db()
-        cur = conn.cursor()
+            user = cur.fetchone()
+            conn.close()
 
-        cur.execute("""
-            SELECT * FROM users
-            WHERE username=%s AND password=%s
-        """, (username, password))
+            if user:
+                session['user_id'] = user[0]
+                session['name'] = user[1]
+                session['username'] = user[2]
+                session['role'] = user[6]
+                return redirect('/dashboard')
 
-        user = cur.fetchone()
-        conn.close()
-
-        if user:
-            session['user_id'] = user[0]
-            session['name'] = user[1]
-            session['username'] = user[2]
-            session['role'] = user[6]
-
-            return redirect('/dashboard')
+        except Exception as e:
+            return f"Login Error: {str(e)}"
 
     return render_template('login.html')
 
 
 # ----------------------------
-# DASHBOARD (SAFE VERSION)
+# DASHBOARD
 # ----------------------------
 @app.route('/dashboard')
 def dashboard():
@@ -130,28 +133,29 @@ def dashboard():
 # ----------------------------
 @app.route('/projects', methods=['GET', 'POST'])
 def projects():
-    conn = get_db()
-    cur = conn.cursor()
+    try:
+        conn = get_db()
+        cur = conn.cursor()
 
-    if request.method == 'POST':
+        if request.method == 'POST':
+            cur.execute("""
+                INSERT INTO projects (project_name, description, deadline)
+                VALUES (%s,%s,%s)
+            """, (
+                request.form['project_name'],
+                request.form['description'],
+                request.form['deadline']
+            ))
+            conn.commit()
 
-        project_name = request.form['project_name']
-        description = request.form['description']
-        deadline = request.form['deadline']
+        cur.execute("SELECT * FROM projects")
+        data = cur.fetchall()
 
-        cur.execute("""
-            INSERT INTO projects (project_name, description, deadline)
-            VALUES (%s,%s,%s)
-        """, (project_name, description, deadline))
+        conn.close()
+        return render_template('projects.html', projects=data)
 
-        conn.commit()
-
-    cur.execute("SELECT * FROM projects")
-    data = cur.fetchall()
-
-    conn.close()
-
-    return render_template('projects.html', projects=data)
+    except Exception as e:
+        return f"Projects Error: {str(e)}"
 
 
 # ----------------------------
@@ -159,48 +163,49 @@ def projects():
 # ----------------------------
 @app.route('/tasks', methods=['GET', 'POST'])
 def tasks():
-    conn = get_db()
-    cur = conn.cursor()
+    try:
+        conn = get_db()
+        cur = conn.cursor()
 
-    if request.method == 'POST':
-
-        task_name = request.form['task_name']
-        assigned_to = request.form['assigned_to']
-        project_id = request.form['project_id']
-        priority = request.form['priority']
-        status = request.form['status']
+        if request.method == 'POST':
+            cur.execute("""
+                INSERT INTO tasks (task_name, assigned_to, project_id, priority, status)
+                VALUES (%s,%s,%s,%s,%s)
+            """, (
+                request.form['task_name'],
+                request.form['assigned_to'],
+                request.form['project_id'],
+                request.form['priority'],
+                request.form['status']
+            ))
+            conn.commit()
 
         cur.execute("""
-            INSERT INTO tasks (task_name, assigned_to, project_id, priority, status)
-            VALUES (%s,%s,%s,%s,%s)
-        """, (task_name, assigned_to, project_id, priority, status))
+            SELECT tasks.id, tasks.task_name, users.full_name,
+                   projects.project_name, tasks.priority, tasks.status
+            FROM tasks
+            JOIN users ON tasks.assigned_to = users.id
+            JOIN projects ON tasks.project_id = projects.id
+        """)
+        tasks_data = cur.fetchall()
 
-        conn.commit()
+        cur.execute("SELECT * FROM users")
+        users = cur.fetchall()
 
-    cur.execute("""
-        SELECT tasks.id, tasks.task_name, users.full_name,
-               projects.project_name, tasks.priority, tasks.status
-        FROM tasks
-        JOIN users ON tasks.assigned_to = users.id
-        JOIN projects ON tasks.project_id = projects.id
-    """)
+        cur.execute("SELECT * FROM projects")
+        projects = cur.fetchall()
 
-    tasks_data = cur.fetchall()
+        conn.close()
 
-    cur.execute("SELECT * FROM users")
-    users = cur.fetchall()
+        return render_template(
+            'tasks.html',
+            tasks=tasks_data,
+            users=users,
+            projects=projects
+        )
 
-    cur.execute("SELECT * FROM projects")
-    projects = cur.fetchall()
-
-    conn.close()
-
-    return render_template(
-        'tasks.html',
-        tasks=tasks_data,
-        users=users,
-        projects=projects
-    )
+    except Exception as e:
+        return f"Tasks Error: {str(e)}"
 
 
 # ----------------------------
@@ -213,7 +218,7 @@ def logout():
 
 
 # ----------------------------
-# RUN (RAILWAY SAFE)
+# RAILWAY ENTRY POINT (IMPORTANT)
 # ----------------------------
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
