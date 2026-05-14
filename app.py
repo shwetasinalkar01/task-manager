@@ -7,7 +7,7 @@ app.secret_key = "secretkey"
 
 
 # ----------------------------
-# DATABASE CONNECTION (SAFE)
+# DATABASE CONNECTION
 # ----------------------------
 def get_db():
     return pymysql.connect(
@@ -30,7 +30,7 @@ def home():
 
 
 # ----------------------------
-# SIGNUP
+# SIGNUP (FIXED)
 # ----------------------------
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -40,13 +40,17 @@ def signup():
             cur = conn.cursor()
 
             cur.execute("""
-                INSERT INTO users (full_name, username, email, phone, password, role)
-                VALUES (%s,%s,%s,%s,%s,%s)
+                INSERT INTO users 
+                (full_name, username, email, phone, gender, department, address, password, role)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
                 request.form['full_name'],
                 request.form['username'],
                 request.form['email'],
                 request.form['phone'],
+                request.form.get('gender'),
+                request.form.get('department'),
+                request.form.get('address'),
                 request.form['password'],
                 request.form['role']
             ))
@@ -63,7 +67,7 @@ def signup():
 
 
 # ----------------------------
-# LOGIN
+# LOGIN (FIXED)
 # ----------------------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -75,7 +79,10 @@ def login():
             cur.execute("""
                 SELECT * FROM users
                 WHERE username=%s AND password=%s
-            """, (request.form['username'], request.form['password']))
+            """, (
+                request.form['username'].strip(),
+                request.form['password'].strip()
+            ))
 
             user = cur.fetchone()
             conn.close()
@@ -84,8 +91,11 @@ def login():
                 session['user_id'] = user[0]
                 session['name'] = user[1]
                 session['username'] = user[2]
-                session['role'] = user[6]
+                session['role'] = user[8]   # role column (IMPORTANT FIX)
+
                 return redirect('/dashboard')
+            else:
+                return "Invalid username or password"
 
         except Exception as e:
             return f"Login Error: {str(e)}"
@@ -169,7 +179,8 @@ def tasks():
 
         if request.method == 'POST':
             cur.execute("""
-                INSERT INTO tasks (task_name, assigned_to, project_id, priority, status)
+                INSERT INTO tasks 
+                (task_name, assigned_to, project_id, priority, status)
                 VALUES (%s,%s,%s,%s,%s)
             """, (
                 request.form['task_name'],
@@ -218,7 +229,7 @@ def logout():
 
 
 # ----------------------------
-# RAILWAY ENTRY POINT (IMPORTANT)
+# RUN
 # ----------------------------
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
