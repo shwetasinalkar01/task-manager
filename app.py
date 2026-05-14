@@ -20,9 +20,10 @@ def home():
     return redirect('/login')
 
 
-# SIGNUP (FIXED - only fields in DB)
+# SIGNUP
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+
     if request.method == 'POST':
 
         full_name = request.form['full_name']
@@ -35,8 +36,9 @@ def signup():
         cur = mysql.connection.cursor()
 
         cur.execute("""
-            INSERT INTO users (full_name, username, email, phone, password, role)
-            VALUES (%s,%s,%s,%s,%s,%s)
+            INSERT INTO users 
+            (full_name, username, email, phone, password, role)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """, (full_name, username, email, phone, password, role))
 
         mysql.connection.commit()
@@ -50,6 +52,7 @@ def signup():
 # LOGIN
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+
     if request.method == 'POST':
 
         username = request.form['username']
@@ -63,6 +66,7 @@ def login():
         """, (username, password))
 
         user = cur.fetchone()
+
         cur.close()
 
         if user:
@@ -118,8 +122,9 @@ def projects():
         deadline = request.form['deadline']
 
         cur.execute("""
-            INSERT INTO projects (project_name, description, deadline)
-            VALUES (%s,%s,%s)
+            INSERT INTO projects 
+            (project_name, description, deadline)
+            VALUES (%s, %s, %s)
         """, (project_name, description, deadline))
 
         mysql.connection.commit()
@@ -132,7 +137,7 @@ def projects():
     return render_template('projects.html', projects=data)
 
 
-# TASKS (FIXED - matches DB)
+# TASKS
 @app.route('/tasks', methods=['GET', 'POST'])
 def tasks():
 
@@ -147,19 +152,21 @@ def tasks():
         status = request.form['status']
 
         cur.execute("""
-            INSERT INTO tasks (task_name, assigned_to, project_id, priority, status)
-            VALUES (%s,%s,%s,%s,%s)
+            INSERT INTO tasks 
+            (task_name, assigned_to, project_id, priority, status)
+            VALUES (%s, %s, %s, %s, %s)
         """, (task_name, assigned_to, project_id, priority, status))
 
         mysql.connection.commit()
 
     cur.execute("""
-        SELECT tasks.id,
-               tasks.task_name,
-               users.full_name,
-               projects.project_name,
-               tasks.priority,
-               tasks.status
+        SELECT 
+            tasks.id,
+            tasks.task_name,
+            users.full_name,
+            projects.project_name,
+            tasks.priority,
+            tasks.status
         FROM tasks
         JOIN users ON tasks.assigned_to = users.id
         JOIN projects ON tasks.project_id = projects.id
@@ -190,5 +197,9 @@ def logout():
     return redirect('/login')
 
 
+# RUN APP
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000))
+    )
